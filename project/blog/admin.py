@@ -1,7 +1,13 @@
 from django.contrib import admin
 
-from .models import Post, Comment, Category
+from blog.models import Post, Category
 
-admin.site.register(Post)
-admin.site.register(Comment)
+
+# class PostAdmin(admin.ModelAdmin):
+#     list_display = ('question', 'pub_date', )
+#     list_filter = ['pub_date']
+#     search_fields = ['question']
+
+
+admin.site.register(Post) #, PostAdmin)
 admin.site.register(Category)

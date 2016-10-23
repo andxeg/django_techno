@@ -4,6 +4,7 @@ from django.utils import timezone
 
 
 class Poll(models.Model):
+    author = models.ForeignKey('auth.User')
     question = models.CharField(max_length=200)
     pub_date = models.DateTimeField(db_index=True, default=timezone.now)
 
