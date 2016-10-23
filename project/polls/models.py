@@ -32,6 +32,6 @@ class Answer(models.Model):
     author = models.ForeignKey('auth.User') 
 
     def __str__(self):
-        return str(self.author) + '_' + str(self.choice)
+        return str(self.author) + '->' + str(self.choice)
 
 

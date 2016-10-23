@@ -1,5 +1,6 @@
 from django.contrib import admin
 from polls.models import Poll, Choice, Answer
+from comment.models import Comment
 
 
 class ChoiceInline(admin.TabularInline):
@@ -7,18 +8,33 @@ class ChoiceInline(admin.TabularInline):
     extra = 3
 
 
+class CommentInline(admin.TabularInline):
+    model = Comment
+    extra = 2
+
+
 class PollAdmin(admin.ModelAdmin):
     fieldsets = [
+        ('Author', {'fields': ['author']}),
         (None, {'fields': ['question']}),
         ('Date information', {'fields': ['pub_date'], 'classes': ['collapse']}),
+
     ]
 
-    list_display = ('question', 'pub_date', 'was_published_recently')
+    list_display = ('author', 'question', 'pub_date', 'was_published_recently')
     list_filter = ['pub_date']
     search_fields = ['question']
-    inlines = [ChoiceInline]
+    inlines = [ChoiceInline, CommentInline]
 
+
+class AnswerAdmin(admin.ModelAdmin):
+    fieldsets = [
+        ('Author', {'fields': ['author']}),
+        ('Choice', {'fields': ['choice']}),
+    ]
+    list_display = ('author', 'choice',)
+    search_fields = ['author']
 
 admin.site.register(Poll, PollAdmin)
-admin.site.register(Answer)
+admin.site.register(Answer, AnswerAdmin)
 
