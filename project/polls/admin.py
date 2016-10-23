@@ -1,16 +1,10 @@
 from django.contrib import admin
 from polls.models import Poll, Choice, Answer
-# from comment.models import Comment
 
 
 class ChoiceInline(admin.TabularInline):
     model = Choice
     extra = 3
-
-#
-# class CommentInline(admin.TabularInline):
-#     model = Comment
-#     extra = 2
 
 
 class PollAdmin(admin.ModelAdmin):
@@ -24,7 +18,7 @@ class PollAdmin(admin.ModelAdmin):
     list_display = ('author', 'question', 'pub_date', 'was_published_recently')
     list_filter = ['pub_date']
     search_fields = ['question']
-    inlines = [ChoiceInline] #, CommentInline]
+    inlines = [ChoiceInline]
 
 
 class AnswerAdmin(admin.ModelAdmin):

@@ -33,3 +33,9 @@ class Post(models.Model):
     class Meta:
         ordering = ('title',)
 
+
+# many to many access
+# p - post object already in DB
+# c - category object already in DB
+# all connected category for post -> p.categories.all()
+# all connected post for category -> c.post_set.all()

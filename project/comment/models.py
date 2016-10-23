@@ -15,11 +15,8 @@ class Comment(models.Model):
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey('content_type', 'object_id')
 
-    # post = models.ForeignKey(Post, related_name='comment')
-    # poll = models.ForeignKey(Poll, related_name='comment')
-
     def __str__(self):
-        return 'comment to' + str(self.content_object)
+        return 'comment to ' + str(self.content_object)
 
 # find connected object Post or Polls
 # !!!FIRST METHOD
