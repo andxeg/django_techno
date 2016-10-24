@@ -20,7 +20,7 @@ from custom_user.models import CustomUser
 from django.contrib.contenttypes.models import ContentType
 
 # passwd = *123abcd
-passwd = 'pbkdf2_sha256$30000$c4Ot97M8Av2t$V4o5Ih3luCfFIU9QxqNQw6XpWl7KJ6yzM/oTJ7Vxwj8='
+password = 'pbkdf2_sha256$30000$c4Ot97M8Av2t$V4o5Ih3luCfFIU9QxqNQw6XpWl7KJ6yzM/oTJ7Vxwj8='
 CONSTANTS = {
     'users_count': 100000,
 
@@ -49,6 +49,35 @@ CONSTANTS = {
         'min': 10,
         'max': 20
     },
+}
+
+TEST_CONSTANTS = {
+    'users_count': 10,
+
+    'categories_count': 5,
+    'posts_count': 100,
+    'comments_per_post': {
+        'min': 2,
+        'max': 5
+    },
+    'posts_per_category': {
+        'min': 10,
+        'max': 15
+    },
+
+    'polls_count': 100,
+    'choices_per_poll': {
+        'min': 2,
+        'max': 5
+    },
+    'answers_per_choice': {
+        'min': 10,
+        'max': 15
+    },
+    'comments_per_poll': {
+        'min': 2,
+        'max': 5
+    },
 
 }
 
@@ -58,7 +87,7 @@ def generate_users():
     custom_users = []
     for i in range(CONSTANTS['users_count']):
         first_name, last_name = names.get_full_name().split(' ')
-        user = User(password=passwd,
+        user = User(password=password,
                     username=first_name,
                     first_name=first_name,
                     last_name=last_name,
@@ -111,18 +140,15 @@ def generate_comments(users, objects, obj_type):
     comments = []
     last_user_index = len(users) - 1
     if obj_type == "post":
+        key = 'comments_per_post'
         content_type = ContentType.objects.get_for_model(Post)
     elif obj_type == "poll":
+        key = 'comments_per_poll'
         content_type = ContentType.objects.get_for_model(Poll)
 
     for obj in objects:
-        if obj_type == "post":
-            key = 'comments_per_post'
-        elif obj_type == "poll":
-            key = 'comments_per_poll'
-
         comments_per_obj = randint(CONSTANTS[key]['min'],
-                                    CONSTANTS[key]['max'])
+                                   CONSTANTS[key]['max'])
         content_object = obj
         object_id = obj.id
         for j in range(comments_per_obj):
@@ -157,10 +183,19 @@ def generate_m2m_links(categories, posts):
                        CONSTANTS['posts_per_category']['max'])
 
         category_id = category.id
+
+        delta = 0
+        next_pos = curr_pos + size
+        if next_pos >= posts_count:
+            delta = next_pos - posts_count
+
         for j in range(curr_pos, curr_pos+size):
             posts[j].add(category_id)
 
-        curr_pos = (curr_pos + size) % posts_count
+        for j in range(delta):
+            posts[j].add(category_id)
+
+        curr_pos = next_pos % posts_count
 
 
 def generate_polls_and_choices(users):
@@ -176,8 +211,8 @@ def generate_polls_and_choices(users):
                     pub_date=pub_date)
         polls.append(poll)
 
-        choices_per_poll = randint(CONSTANTS['comments_per_post']['min'],
-                                   CONSTANTS['comments_per_post']['max'])
+        choices_per_poll = randint(CONSTANTS['choices_per_poll']['min'],
+                                   CONSTANTS['choices_per_poll']['max'])
         for j in range(choices_per_poll):
             choice_text = "Choice #%d for question#%d" % (j, i,)
             choice = Choice(poll=poll,
@@ -205,6 +240,10 @@ def generate_answers(users, choices):
 
 
 def init_db(argv):
+    if argv[1] == "test":
+        global CONSTANTS
+        CONSTANTS = TEST_CONSTANTS
+
     # GENERATE USERS
     users = generate_users()
 
@@ -230,7 +269,7 @@ def init_db(argv):
     comments_polls = generate_comments(users, polls, "poll")
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     init_db(sys.argv[0:])
 
 #Можно запрашивать из базы не содержимое объектов
