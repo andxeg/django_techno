@@ -240,6 +240,10 @@ def generate_answers(users, choices):
 
 
 def init_db(argv):
+    if not argv[1] == "test" and not argv[1] == "create":
+        print("Try start script in this form: python %s test|create" % argv[0])
+        return
+
     if argv[1] == "test":
         global CONSTANTS
         CONSTANTS = TEST_CONSTANTS
@@ -267,6 +271,9 @@ def init_db(argv):
 
     # GENERATE COMMENTS TO POLLS
     comments_polls = generate_comments(users, polls, "poll")
+
+    print("All ok")
+    return
 
 
 if __name__ == "__main__":
