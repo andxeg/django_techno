@@ -16,7 +16,7 @@ class Category(models.Model):
 class Post(models.Model):
     author = models.ForeignKey('auth.User')
     categories = models.ManyToManyField(Category)
-    #index for select with ORDER BY
+    # index for select with ORDER BY
     title = models.CharField(db_index=True, max_length=200)
     text = models.TextField()
     created_date = models.DateTimeField(db_index=True,

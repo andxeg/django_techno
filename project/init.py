@@ -1,4 +1,8 @@
-import os, sys
+import os
+import sys
+import time
+import math
+import datetime
 
 project_path = "/home/andrew/TECHNOSPHERE/python/env/django_project/project/"
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "techno.settings")
@@ -18,6 +22,7 @@ from polls.models import Poll, Choice, Answer
 from comment.models import Comment
 from custom_user.models import CustomUser
 from django.contrib.contenttypes.models import ContentType
+from django.db import transaction
 
 # passwd = *123abcd
 password = 'pbkdf2_sha256$30000$c4Ot97M8Av2t$V4o5Ih3luCfFIU9QxqNQw6XpWl7KJ6yzM/oTJ7Vxwj8='
@@ -27,8 +32,8 @@ CONSTANTS = {
     'categories_count': 5000,
     'posts_count': 100000,
     'comments_per_post': {
-        'min': 10,
-        'max': 20
+        'min': 5,
+        'max': 10
     },
     'posts_per_category': {
         'min': 100,
@@ -42,12 +47,12 @@ CONSTANTS = {
         'max': 10
     },
     'answers_per_choice': {
-        'min': 50,
-        'max': 500
+        'min': 5,
+        'max': 10
     },
     'comments_per_poll': {
-        'min': 10,
-        'max': 20
+        'min': 5,
+        'max': 10
     },
 }
 
@@ -86,9 +91,11 @@ def generate_users():
     users = []
     custom_users = []
     for i in range(CONSTANTS['users_count']):
-        first_name, last_name = names.get_full_name().split(' ')
+        #first_name, last_name = names.get_full_name().split(' ')
+        first_name = "User_%d" % i
+        last_name = "lastname"
         user = User(password=password,
-                    username=first_name,
+                    username=first_name.lower() + '_' + last_name.lower(),
                     first_name=first_name,
                     last_name=last_name,
                     is_superuser=False,
@@ -101,7 +108,27 @@ def generate_users():
         users.append(user)
         custom_users.append(custom_user)
 
-    User.objects.bulk_create(users)
+    with transaction.atomic():
+        for user in users:
+            user.save()
+
+    # with transaction.atomic():
+    #     print("Before bulk_create users")
+    #     User.objects.bulk_create(users)
+    
+    # sys.exit()
+
+    # after bulk_create i cannot know id, because query incomplete
+    # first method -> use not AutoIncrement Id, set it manually
+    # second method -> use transaction and save in the loop <- bad way
+
+    # SET ID OF CONNECTED OBJECT
+    for custom_user in custom_users:
+        # print("User -> %s with id -> %d"
+        #        % (custom_user.user.username, custom_user.user.id))
+        custom_user.user_id = custom_user.user.id
+
+    # print("Before bulk_create custom_users")
     CustomUser.objects.bulk_create(custom_users)
 
     return users
@@ -114,7 +141,12 @@ def generate_categories():
         category = Category(headline=headline)
         categories.append(category)
 
-    Category.objects.bulk_create(categories)
+    # Category.objects.bulk_create(categories)
+
+    with transaction.atomic():
+        for category in categories:
+            category.save()
+
     return categories
 
 
@@ -132,7 +164,12 @@ def generate_posts(users):
                     created_date=created_date)
         posts.append(post)
 
-    Post.objects.bulk_create(posts)
+    # Post.objects.bulk_create(posts)
+
+    with transaction.atomic():
+        for post in posts:
+            post.save()
+
     return posts
 
 
@@ -171,7 +208,7 @@ def generate_comments(users, objects, obj_type):
 
             comments.append(comment)
 
-    Comment.bulk_create(comments)
+    Comment.objects.bulk_create(comments)
     return comments
 
 
@@ -190,10 +227,10 @@ def generate_m2m_links(categories, posts):
             delta = next_pos - posts_count
 
         for j in range(curr_pos, curr_pos+size):
-            posts[j].add(category_id)
+            posts[j].categories.add(category_id)
 
         for j in range(delta):
-            posts[j].add(category_id)
+            posts[j].categories.add(category_id)
 
         curr_pos = next_pos % posts_count
 
@@ -219,8 +256,21 @@ def generate_polls_and_choices(users):
                             choice_text=choice_text)
             choices.append(choice)
 
-    Poll.objects.bulk_create(polls)
-    Choice.objects.bulk_create(choices)
+    # problem with bulk_create i describe in func generate_users()
+    # Poll.objects.bulk_create(polls)
+
+    with transaction.atomic():
+        for poll in polls:
+            poll.save()
+
+
+    #Choice.objects.bulk_create(choices)
+
+    with transaction.atomic():
+        for choice in choices:
+            choice.poll_id = choice.poll.id
+            choice.save()
+
     return polls, choices
 
 
@@ -239,7 +289,26 @@ def generate_answers(users, choices):
     Answer.objects.bulk_create(answers)
 
 
+def print_time_stamp(t2, t1):
+    curr_time = datetime.datetime.fromtimestamp(t2).strftime('%Y-%m-%d %H:%M:%S')
+    print("Current time -> %s " % curr_time)
+    delta = math.floor(t2 - t1) + 1
+    h = math.floor(delta / 3600)
+    m = math.floor(delta - 3600*h) / 60
+    s = delta % 60
+    print("Delta time -> %dh %dm %ds" % (h, m, s))
+    print("Delta time in seconds -> %f" % delta)
+
+
 def init_db(argv):
+    t1 = time.time()
+    curr_time = datetime.datetime.fromtimestamp(t1).strftime('%Y-%m-%d %H:%M:%S')
+    print("Current time -> %s " % curr_time)
+
+    if len(argv) == 1:
+        print("Try start script in this form: python %s test|create" % argv[0])
+        return
+
     if not argv[1] == "test" and not argv[1] == "create":
         print("Try start script in this form: python %s test|create" % argv[0])
         return
@@ -250,39 +319,54 @@ def init_db(argv):
 
     # GENERATE USERS
     users = generate_users()
+    print("\nUsers were created")
+    print_time_stamp(time.time(), t1)
 
     # GENERATE CATEGORIES
     categories = generate_categories()
+    print("\nCategories were created")
+    print_time_stamp(time.time(), t1)
 
     # GENERATE POSTS
     posts = generate_posts(users)
+    print("\nPosts were created")
+    print_time_stamp(time.time(), t1)
 
     # GENERATE COMMENTS TO POSTS
     comments_posts = generate_comments(users, posts, "post")
+    print("\nComments to posts were created")
+    print_time_stamp(time.time(), t1)
 
     # GENERATE MANY_TO_MANY LINKS BETWEEN POSTS AND CATEGORIES
     generate_m2m_links(categories, posts)
+    print("\nMany to many links beetween posts and categories were created")
+    print_time_stamp(time.time(), t1)
 
     # GENERATE POLLS AND CHOICES
     polls, choices = generate_polls_and_choices(users)
+    print("\nPolls and choices were created")
+    print_time_stamp(time.time(), t1)
 
     # GENERATE ANSWERS
     generate_answers(users, choices)
+    print("\nAnswer to choices were created")
+    print_time_stamp(time.time(), t1)
 
     # GENERATE COMMENTS TO POLLS
     comments_polls = generate_comments(users, polls, "poll")
+    print("\nComments to polls were created")
 
     print("All ok")
+    print_time_stamp(time.time(), t1)
     return
-
 
 if __name__ == "__main__":
     init_db(sys.argv[0:])
 
-#Можно запрашивать из базы не содержимое объектов
+# Можно запрашивать из базы не содержимое объектов
 # а только id объектов
 
-#bulk_create
+# bulk_create
 
-#в цикле к БД обращаться нельзя
+# в цикле к БД обращаться нельзя
 
