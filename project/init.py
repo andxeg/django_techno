@@ -103,35 +103,38 @@ def generate_users():
                     is_active=True,
                     date_joined=timezone.now())
 
-        add_info = "Additional info for user %s" % first_name + ' ' + last_name
-        custom_user = CustomUser(user=user, about=add_info)
         users.append(user)
-        custom_users.append(custom_user)
-
-    with transaction.atomic():
-        for user in users:
-            user.save()
 
     # with transaction.atomic():
-    #     print("Before bulk_create users")
-    #     User.objects.bulk_create(users)
-    
-    # sys.exit()
+    #     for user in users:
+    #         user.save()
 
+    with transaction.atomic():
+        print("Before bulk_create users")
+        User.objects.bulk_create(users)
+        print("After bulk_create users")
+    
     # after bulk_create i cannot know id, because query incomplete
     # first method -> use not AutoIncrement Id, set it manually
     # second method -> use transaction and save in the loop <- bad way
+    # third methow -> uses below
+
+    # Due to bulk_create doesn't return objects with primary_key(briefly id)
+    # Send query to db
+    # users = User.objects.all()
+    users_id = User.objects.values_list('id', flat=True).all()
 
     # SET ID OF CONNECTED OBJECT
-    for custom_user in custom_users:
+    for user_id in users_id:
         # print("User -> %s with id -> %d"
         #        % (custom_user.user.username, custom_user.user.id))
-        custom_user.user_id = custom_user.user.id
-
-    # print("Before bulk_create custom_users")
+        add_info = "Additional info for user %s" % first_name + ' ' + last_name
+        custom_user = CustomUser(user_id=user_id, about=add_info)
+        custom_users.append(custom_user)
+        
+    print("Before bulk_create custom_users")
     CustomUser.objects.bulk_create(custom_users)
-
-    return users
+    return users_id
 
 
 def generate_categories():
@@ -141,75 +144,72 @@ def generate_categories():
         category = Category(headline=headline)
         categories.append(category)
 
-    # Category.objects.bulk_create(categories)
-
     with transaction.atomic():
-        for category in categories:
-            category.save()
+        Category.objects.bulk_create(categories)
 
+    categories = Category.objects.all()
     return categories
 
 
-def generate_posts(users):
-    last_user_index = len(users) - 1
+def generate_posts(users_id):
+    last_user_index = len(users_id) - 1
     posts = []
     for i in range(CONSTANTS['posts_count']):
-        user = users[randint(0, last_user_index)]
+        user_id = users_id[randint(0, last_user_index)]
         title = "Post #%d" % i
         text = "Text of the %d-th post" % i
         created_date = timezone.now()
-        post = Post(author=user,
+        post = Post(author_id=user_id,
                     title=title,
                     text=text,
                     created_date=created_date)
         posts.append(post)
 
-    # Post.objects.bulk_create(posts)
-
     with transaction.atomic():
-        for post in posts:
-            post.save()
+        Post.objects.bulk_create(posts)
 
-    return posts
+    # may be need take only id from db
+    posts = Post.objects.all()
+    posts_id = Post.objects.values_list("id", flat=True).all()
+    return posts, posts_id
 
 
-def generate_comments(users, objects, obj_type):
+def generate_comments(users_id, objects_id, obj_type):
     comments = []
-    last_user_index = len(users) - 1
+    last_user_index = len(users_id) - 1
     if obj_type == "post":
         key = 'comments_per_post'
         content_type = ContentType.objects.get_for_model(Post)
+        title_template = "Comment #%d for post with id %d"
+        body_template = "Body of %d-th comment of post with id %d"
     elif obj_type == "poll":
         key = 'comments_per_poll'
         content_type = ContentType.objects.get_for_model(Poll)
+        title_template = "Comment #%d for poll with id %d"
+        body_template = "Body of %d-th comment of poll with id %d"
 
-    for obj in objects:
+    for object_id in objects_id:
         comments_per_obj = randint(CONSTANTS[key]['min'],
-                                   CONSTANTS[key]['max'])
-        content_object = obj
-        object_id = obj.id
+                                   CONSTANTS[key]['max'])   
         for j in range(comments_per_obj):
-            user = users[randint(0, last_user_index)]
-            if obj_type == "post":
-                title = "Comment #%d for post %s" % (j, obj.title,)
-                body = "Body of %d-th comment of post %s" % (j, obj.title,)
-            elif obj_type == "poll":
-                title = "Comment #%d for poll %s" % (j, obj.question,)
-                body = "Body of %d-th comment of poll %s" % (j, obj.question,)
-
+            user_id = users_id[randint(0, last_user_index)]
+            title = title_template % (j, object_id)
+            body = body_template % (j, object_id)
             created_date = timezone.now()
-            comment = Comment(author=user,
+            comment = Comment(author_id=user_id,
                               title=title,
                               body=body,
                               created_date=created_date,
                               content_type=content_type,
-                              content_object=content_object,
                               object_id=object_id)
 
             comments.append(comment)
 
-    Comment.objects.bulk_create(comments)
-    return comments
+    with transaction.atomic():
+        Comment.objects.bulk_create(comments)
+
+    comments_id = Comment.objects.values_list('id', flat=True).all()
+
 
 
 def generate_m2m_links(categories, posts):
@@ -235,55 +235,53 @@ def generate_m2m_links(categories, posts):
         curr_pos = next_pos % posts_count
 
 
-def generate_polls_and_choices(users):
-    last_user_index = len(users) - 1
+def generate_polls_and_choices(users_id):
+    last_user_index = len(users_id) - 1
     polls = []
     choices = []
     for i in range(CONSTANTS['polls_count']):
         user = users[randint(0, last_user_index)]
         question = "Question #%d" % i
         pub_date = timezone.now()
-        poll = Poll(author=user,
+        poll = Poll(author_id=user_id,
                     question=question,
                     pub_date=pub_date)
         polls.append(poll)
 
+    # problem with bulk_create i describe in func generate_users()
+    
+    with transaction.atomic():
+        Poll.objects.bulk_create(polls)
+
+    # polls = Poll.objects.all()
+    polls_id = Poll.objects.values_list('id', flat=True).all()
+
+    for poll_id in polls_id:
         choices_per_poll = randint(CONSTANTS['choices_per_poll']['min'],
                                    CONSTANTS['choices_per_poll']['max'])
         for j in range(choices_per_poll):
             choice_text = "Choice #%d for question#%d" % (j, i,)
-            choice = Choice(poll=poll,
+            choice = Choice(poll_id=poll_id,
                             choice_text=choice_text)
             choices.append(choice)
+    
+    Choice.objects.bulk_create(choices)
 
-    # problem with bulk_create i describe in func generate_users()
-    # Poll.objects.bulk_create(polls)
-
-    with transaction.atomic():
-        for poll in polls:
-            poll.save()
-
-
-    #Choice.objects.bulk_create(choices)
-
-    with transaction.atomic():
-        for choice in choices:
-            choice.poll_id = choice.poll.id
-            choice.save()
-
-    return polls, choices
+    # choices = Choice.objects.all()
+    choices_id = Choice.objects.values_list("id", flat=True).all()
+    return polls_id, choices_id
 
 
-def generate_answers(users, choices):
+def generate_answers(users_id, choices_id):
     answers = []
-    last_user_index = len(users) - 1
-    for choice in choices:
+    last_user_index = len(users_id) - 1
+    for choice_id in choices_id:
         answers_per_choice = randint(CONSTANTS['answers_per_choice']['min'],
                                      CONSTANTS['answers_per_choice']['max'])
         for j in range(answers_per_choice):
-            user = users[randint(0, last_user_index)]
-            answer = Answer(choice=choice,
-                            author=user)
+            user_id = users_id[randint(0, last_user_index)]
+            answer = Answer(choice_id=choice_id,
+                            author_id=user_id)
             answers.append(answer)
 
     Answer.objects.bulk_create(answers)
@@ -318,7 +316,7 @@ def init_db(argv):
         CONSTANTS = TEST_CONSTANTS
 
     # GENERATE USERS
-    users = generate_users()
+    users_id = generate_users()
     print("\nUsers were created")
     print_time_stamp(time.time(), t1)
 
@@ -328,12 +326,12 @@ def init_db(argv):
     print_time_stamp(time.time(), t1)
 
     # GENERATE POSTS
-    posts = generate_posts(users)
+    posts, posts_id = generate_posts(users_id)
     print("\nPosts were created")
     print_time_stamp(time.time(), t1)
 
     # GENERATE COMMENTS TO POSTS
-    comments_posts = generate_comments(users, posts, "post")
+    generate_comments(users_id, posts_id, "post")
     print("\nComments to posts were created")
     print_time_stamp(time.time(), t1)
 
@@ -343,17 +341,17 @@ def init_db(argv):
     print_time_stamp(time.time(), t1)
 
     # GENERATE POLLS AND CHOICES
-    polls, choices = generate_polls_and_choices(users)
+    polls_id, choices_id = generate_polls_and_choices(users_id)
     print("\nPolls and choices were created")
     print_time_stamp(time.time(), t1)
 
     # GENERATE ANSWERS
-    generate_answers(users, choices)
+    generate_answers(users_id, choices_id)
     print("\nAnswer to choices were created")
     print_time_stamp(time.time(), t1)
 
     # GENERATE COMMENTS TO POLLS
-    comments_polls = generate_comments(users, polls, "poll")
+    generate_comments(users_id, polls_id, "poll")
     print("\nComments to polls were created")
 
     print("All ok")
@@ -369,4 +367,3 @@ if __name__ == "__main__":
 # bulk_create
 
 # в цикле к БД обращаться нельзя
-

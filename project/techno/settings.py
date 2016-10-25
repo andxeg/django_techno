@@ -81,7 +81,8 @@ DATABASES = {
     'default': { 
         'ENGINE': 'django.db.backends.mysql',
         'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            'connect_timeout': 2000
         },
         'NAME': 'django_db',
         'USER': 'django',
