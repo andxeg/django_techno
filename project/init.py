@@ -29,11 +29,11 @@ password = 'pbkdf2_sha256$30000$c4Ot97M8Av2t$V4o5Ih3luCfFIU9QxqNQw6XpWl7KJ6yzM/o
 CONSTANTS = {
     'users_count': 100000,
 
-    'categories_count': 5000,
+    'categories_count': 500,
     'posts_count': 100000,
     'comments_per_post': {
-        'min': 5,
-        'max': 10
+        'min': 2,
+        'max': 5
     },
     'posts_per_category': {
         'min': 100,
@@ -43,16 +43,16 @@ CONSTANTS = {
 
     'polls_count': 100000,
     'choices_per_poll': {
-        'min': 5,
-        'max': 10
+        'min': 2,
+        'max': 2
     },
     'answers_per_choice': {
-        'min': 5,
-        'max': 10
+        'min': 2,
+        'max': 5
     },
     'comments_per_poll': {
-        'min': 5,
-        'max': 10
+        'min': 2,
+        'max': 5
     },
 }
 
@@ -147,6 +147,7 @@ def generate_categories():
     with transaction.atomic():
         Category.objects.bulk_create(categories)
 
+    # categories_id = Category.objects.values_list('id', flat=True).all()
     categories = Category.objects.all()
     return categories
 
@@ -212,25 +213,26 @@ def generate_comments(users_id, objects_id, obj_type):
 
 
 
-def generate_m2m_links(categories, posts):
-    posts_count = len(posts)
+def generate_m2m_links(categories, posts_id):
+    posts_count = len(posts_id)
     curr_pos = 0
     for category in categories:
         size = randint(CONSTANTS['posts_per_category']['min'],
                        CONSTANTS['posts_per_category']['max'])
-
-        category_id = category.id
 
         delta = 0
         next_pos = curr_pos + size
         if next_pos >= posts_count:
             delta = next_pos - posts_count
 
-        for j in range(curr_pos, curr_pos+size):
-            posts[j].categories.add(category_id)
+        posts = []
+        for j in range(curr_pos, next_pos - delta):
+            posts.append(posts_id[j])
 
         for j in range(delta):
-            posts[j].categories.add(category_id)
+            posts.append(posts_id[j])
+
+        category.post_set.set(posts)
 
         curr_pos = next_pos % posts_count
 
@@ -240,7 +242,7 @@ def generate_polls_and_choices(users_id):
     polls = []
     choices = []
     for i in range(CONSTANTS['polls_count']):
-        user = users[randint(0, last_user_index)]
+        user_id = users_id[randint(0, last_user_index)]
         question = "Question #%d" % i
         pub_date = timezone.now()
         poll = Poll(author_id=user_id,
@@ -336,7 +338,7 @@ def init_db(argv):
     print_time_stamp(time.time(), t1)
 
     # GENERATE MANY_TO_MANY LINKS BETWEEN POSTS AND CATEGORIES
-    generate_m2m_links(categories, posts)
+    generate_m2m_links(categories, posts_id)
     print("\nMany to many links beetween posts and categories were created")
     print_time_stamp(time.time(), t1)
 
@@ -347,7 +349,7 @@ def init_db(argv):
 
     # GENERATE ANSWERS
     generate_answers(users_id, choices_id)
-    print("\nAnswer to choices were created")
+    print("\nAnswers to choices were created")
     print_time_stamp(time.time(), t1)
 
     # GENERATE COMMENTS TO POLLS
