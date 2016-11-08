@@ -1,0 +1,31 @@
+{% load polls_extras %}
+<html>
+    <head>
+        <title>Polls description</title>
+    </head>
+    <body>
+        <div>
+            <h1><a href="./time">Current time</a></h1>
+        </div>
+
+        <div>
+            {% for poll, choices in polls.items %}
+                <div>
+                    <p>published: {{ poll.pub_date }} by {{ poll.author }}</p>
+                    <h1> {{ poll.question }} </h1>
+                    <div>
+                        {% for choice in choices %}
+                            <ul>
+                                {% convert_to_string_and_concate "./choice/"  choice.id as choice_url%}
+                                    <p> <a href={{choice_url}} > {{ choice.choice_text }} </a></p>
+
+                            </ul>
+
+                        {% endfor %}
+                    </div>>
+                </div>
+            {% endfor %}
+
+        </div>
+    </body>
+</html>

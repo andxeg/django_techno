@@ -290,7 +290,7 @@ def generate_polls_and_choices(users_id):
         choices_per_poll = randint(CONSTANTS['choices_per_poll']['min'],
                                    CONSTANTS['choices_per_poll']['max'])
         for j in range(choices_per_poll):
-            choice_text = "Choice #%d for question#%d" % (j, i,)
+            choice_text = "Choice #%d for question with id -> %d" % (j, poll_id,)
             choice = Choice(poll_id=poll_id,
                             choice_text=choice_text)
             choices.append(choice)
