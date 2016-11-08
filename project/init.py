@@ -29,11 +29,11 @@ password = 'pbkdf2_sha256$30000$c4Ot97M8Av2t$V4o5Ih3luCfFIU9QxqNQw6XpWl7KJ6yzM/o
 CONSTANTS = {
     'users_count': 100000,
 
-    'categories_count': 500,
+    'categories_count': 5000,
     'posts_count': 100000,
     'comments_per_post': {
-        'min': 2,
-        'max': 5
+        'min': 5,
+        'max': 15
     },
     'posts_per_category': {
         'min': 100,
@@ -43,17 +43,19 @@ CONSTANTS = {
 
     'polls_count': 100000,
     'choices_per_poll': {
-        'min': 2,
-        'max': 2
+        'min': 5,
+        'max': 5
     },
     'answers_per_choice': {
-        'min': 2,
-        'max': 5
+        'min': 5,
+        'max': 10
     },
     'comments_per_poll': {
-        'min': 2,
-        'max': 5
+        'min': 5,
+        'max': 15
     },
+
+
 }
 
 TEST_CONSTANTS = {
@@ -91,7 +93,7 @@ def generate_users():
     users = []
     custom_users = []
     for i in range(CONSTANTS['users_count']):
-        #first_name, last_name = names.get_full_name().split(' ')
+        # first_name, last_name = names.get_full_name().split(' ')
         first_name = "User_%d" % i
         last_name = "lastname"
         user = User(password=password,
@@ -128,7 +130,7 @@ def generate_users():
     for user_id in users_id:
         # print("User -> %s with id -> %d"
         #        % (custom_user.user.username, custom_user.user.id))
-        add_info = "Additional info for user %s" % first_name + ' ' + last_name
+        add_info = "Additional info for user with id %d" % user_id
         custom_user = CustomUser(user_id=user_id, about=add_info)
         custom_users.append(custom_user)
         
@@ -147,9 +149,9 @@ def generate_categories():
     with transaction.atomic():
         Category.objects.bulk_create(categories)
 
-    # categories_id = Category.objects.values_list('id', flat=True).all()
-    categories = Category.objects.all()
-    return categories
+    categories_id = Category.objects.values_list('id', flat=True).all()
+    # categories = Category.objects.all()
+    return categories_id
 
 
 def generate_posts(users_id):
@@ -167,12 +169,12 @@ def generate_posts(users_id):
         posts.append(post)
 
     with transaction.atomic():
-        Post.objects.bulk_create(posts)
+        Post.objects.bulk_create(posts, 50000)
 
     # may be need take only id from db
-    posts = Post.objects.all()
+    # posts = Post.objects.all()
     posts_id = Post.objects.values_list("id", flat=True).all()
-    return posts, posts_id
+    return posts_id
 
 
 def generate_comments(users_id, objects_id, obj_type):
@@ -206,17 +208,20 @@ def generate_comments(users_id, objects_id, obj_type):
 
             comments.append(comment)
 
+    # слишком большие запросы - нужно обрезать в bulk_create размер
     with transaction.atomic():
-        Comment.objects.bulk_create(comments)
+        Comment.objects.bulk_create(comments, 50000)
 
-    comments_id = Comment.objects.values_list('id', flat=True).all()
+    # comments_id = Comment.objects.values_list('id', flat=True).all()
 
 
-
-def generate_m2m_links(categories, posts_id):
+def generate_m2m_links(categories_id, posts_id):
     posts_count = len(posts_id)
     curr_pos = 0
-    for category in categories:
+    m2m_links = []
+    m2m_obj = Post.categories.through
+
+    for category_id in categories_id:
         size = randint(CONSTANTS['posts_per_category']['min'],
                        CONSTANTS['posts_per_category']['max'])
 
@@ -225,16 +230,39 @@ def generate_m2m_links(categories, posts_id):
         if next_pos >= posts_count:
             delta = next_pos - posts_count
 
-        posts = []
         for j in range(curr_pos, next_pos - delta):
-            posts.append(posts_id[j])
+            post_category_link = m2m_obj(post_id=posts_id[j], category_id=category_id)
+            m2m_links.append(post_category_link)
 
         for j in range(delta):
-            posts.append(posts_id[j])
-
-        category.post_set.set(posts)
+            post_category_link = m2m_obj(post_id=posts_id[j], category_id=category_id)
+            m2m_links.append(post_category_link)
 
         curr_pos = next_pos % posts_count
+
+    m2m_obj.objects.bulk_create(m2m_links, 10000)
+
+
+    # for category in categories:
+    #     size = randint(CONSTANTS['posts_per_category']['min'],
+    #                    CONSTANTS['posts_per_category']['max'])
+
+    #     delta = 0
+    #     next_pos = curr_pos + size
+    #     if next_pos >= posts_count:
+    #         delta = next_pos - posts_count
+
+    #     posts = []
+    #     for j in range(curr_pos, next_pos - delta):
+    #         posts.append(posts_id[j])
+
+    #     for j in range(delta):
+    #         posts.append(posts_id[j])
+
+    #     category.post_set.set(posts)
+    #     # Post.category.through - m2m model
+
+    #     curr_pos = next_pos % posts_count
 
 
 def generate_polls_and_choices(users_id):
@@ -253,7 +281,7 @@ def generate_polls_and_choices(users_id):
     # problem with bulk_create i describe in func generate_users()
     
     with transaction.atomic():
-        Poll.objects.bulk_create(polls)
+        Poll.objects.bulk_create(polls, 50000)
 
     # polls = Poll.objects.all()
     polls_id = Poll.objects.values_list('id', flat=True).all()
@@ -267,7 +295,7 @@ def generate_polls_and_choices(users_id):
                             choice_text=choice_text)
             choices.append(choice)
     
-    Choice.objects.bulk_create(choices)
+    Choice.objects.bulk_create(choices, 50000)
 
     # choices = Choice.objects.all()
     choices_id = Choice.objects.values_list("id", flat=True).all()
@@ -286,7 +314,7 @@ def generate_answers(users_id, choices_id):
                             author_id=user_id)
             answers.append(answer)
 
-    Answer.objects.bulk_create(answers)
+    Answer.objects.bulk_create(answers, 50000)
 
 
 def print_time_stamp(t2, t1):
@@ -323,12 +351,12 @@ def init_db(argv):
     print_time_stamp(time.time(), t1)
 
     # GENERATE CATEGORIES
-    categories = generate_categories()
+    categories_id = generate_categories()
     print("\nCategories were created")
     print_time_stamp(time.time(), t1)
 
     # GENERATE POSTS
-    posts, posts_id = generate_posts(users_id)
+    posts_id = generate_posts(users_id)
     print("\nPosts were created")
     print_time_stamp(time.time(), t1)
 
@@ -338,7 +366,7 @@ def init_db(argv):
     print_time_stamp(time.time(), t1)
 
     # GENERATE MANY_TO_MANY LINKS BETWEEN POSTS AND CATEGORIES
-    generate_m2m_links(categories, posts_id)
+    generate_m2m_links(categories_id, posts_id)
     print("\nMany to many links beetween posts and categories were created")
     print_time_stamp(time.time(), t1)
 
