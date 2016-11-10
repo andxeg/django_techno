@@ -16,7 +16,7 @@
                     <div>
                         {% for choice in choices %}
                             <ul>
-                                {% convert_to_string_and_concate "./choice/"  choice.id as choice_url%}
+                                {% convert_to_string "./choice/"  choice.id as choice_url%}
                                     <p> <a href={{choice_url}} > {{ choice.choice_text }} </a></p>
 
                             </ul>

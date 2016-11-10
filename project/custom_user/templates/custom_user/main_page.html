@@ -8,13 +8,13 @@
         <h1> Your profile </h1>
         <p> {{user.custom_user.about}} </p>
 
-        {% convert_to_string_and_concate "/polls/"  user.id as choice_url%}
+        {% convert_to_string "/poll/user_"  user.id as choice_url%}
             <p> <a href={{choice_url}} > My polls </a></p>
 
-        {% convert_to_string_and_concate "/blog/posts/"  user.id as choice_url%}
+        {% convert_to_string "/blog/post/user_"  user.id as choice_url%}
             <p> <a href={{choice_url}} > My posts </a></p>
 
-        {% convert_to_string_and_concate "/comments/"  user.id as choice_url%}
+        {% convert_to_string "/comment/user_"  user.id as choice_url%}
             <p> <a href={{choice_url}} > My comments </a></p>
 
     </div>

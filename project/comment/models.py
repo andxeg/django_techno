@@ -18,8 +18,8 @@ class Comment(models.Model):
     def __str__(self):
         return 'comment to ' + str(self.content_object)
 
-    class Meta:
-        pass
+    # class Meta:
+    #     pass
 
 # find connected object Post or Polls
 # !!!FIRST METHOD

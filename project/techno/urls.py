@@ -35,9 +35,9 @@ urlpatterns = [
         'template_name': './custom_user/login.html'
     }),
     url(r'^main_page/', return_main_page, name="return_main_page"),
-    url(r'^polls/', include('polls.urls')),
+    url(r'^poll/', include('polls.urls')),
     url(r'^blog/', include('blog.urls')),
-    # url(r'^comments/', include('comment.urls')),
+    url(r'^comment/', include('comment.urls')),
     # url(r'^users/', include('blog.urls')),
     url(r'', return_http404, name="return_http404"),
 ]

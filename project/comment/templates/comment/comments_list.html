@@ -1,0 +1,29 @@
+{%  extends "custom_user/base.html" %}
+
+{% load polls_extras %}
+
+{% block title %} {{ block.super }} - {{user.username}} - My comments {% endblock %}
+
+{% block content%}
+    <div>
+        <h1> My comments </h1>
+
+        <div>
+            {% for comment in comments %}
+                <div>
+                    <p> created date: {{ comment.created_date }} by {{ comment.author }}</p>
+                    <h1> {{ comment.title }} </h1>
+                    <p>  {{ comment.body }} </p>
+
+                    {% convert_to_string comment.content_type as object_name %}
+                    {% convert_to_string  / object_name /  comment.object_id as object}
+
+                    <p>  <a href={{object}}> Go to {{object_name}} which was commented </a> </p>
+                </div>
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+{% endblock %}
