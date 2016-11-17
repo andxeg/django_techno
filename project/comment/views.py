@@ -16,7 +16,7 @@ def comments_by_user_id(request, user_id):
 
 def comment_by_id(request, comment_id):
     try:
-        comment = Comment.objects.filter(id=comment_id)
+        comment = Comment.objects.filter(id=comment_id)[0]
     except Comment.DoesNotExist:
         return HttpResponseNotFound('<h1>Page not found</h1>')
 

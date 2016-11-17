@@ -1,0 +1,27 @@
+{%  extends "custom_user/base.html" %}
+
+{% load polls_extras %}
+
+{% block title %}  Categories {% endblock %}
+
+{% block content%}
+    <div>
+        {% for category, posts in categories_posts.items %}
+            <div>
+                <h1> Category: {{category.headline}} </h1>
+
+                {% for post in posts%}
+                    {% convert_to_string "/blog/post/"  post.id as post_url%}
+                        <p> <a href={{post_url}} > Post: {{post.title}}</a></p>
+                {% endfor %}
+
+                {% convert_to_string "/blog/category/"  category.id as category_full_url%}
+                    <p> <a href={{category_full_url}} > More </a></p>
+            </div>
+
+        {% endfor %}
+
+    </div>
+
+
+{% endblock %}

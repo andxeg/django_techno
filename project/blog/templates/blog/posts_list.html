@@ -6,15 +6,19 @@
 
 {% block content%}
     <div>
-        <h1> My posts </h1>
 
         <div>
-            {% for post in posts %}
+            {% for post, categories in posts_and_categories.items %}
                 <div>
                     <p> created date: {{ post.created_date }} by {{ post.author }} </p>
                     <h1> {{ post.title }} </h1>
                     <p>  {{ post.text }} </p>
                 </div>
+                {% for  category in categories%}
+                    {% convert_to_string "/blog/category/"  category.id as category_url%}
+                        <a href={{category_url}} > @{{category.headline}}@</a>
+                {% endfor %}
+
             {% endfor %}
 
         </div>

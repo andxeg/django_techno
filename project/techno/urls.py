@@ -41,6 +41,3 @@ urlpatterns = [
     # url(r'^users/', include('blog.urls')),
     url(r'', return_http404, name="return_http404"),
 ]
-
-# i must do main page
-# when user login in main page load

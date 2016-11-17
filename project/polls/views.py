@@ -8,7 +8,7 @@ from polls.models import *
 
 def poll_by_id(request, poll_id):
     try:
-        poll = Poll.objects.filter(id=poll_id)
+        poll = Poll.objects.get(id=poll_id)
     except Poll.DoesNotExist:
         return HttpResponseNotFound('<h1>Page not found</h1>')
 

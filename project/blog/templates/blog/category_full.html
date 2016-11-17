@@ -1,0 +1,17 @@
+{%  extends "custom_user/base.html" %}
+
+{% load polls_extras %}
+
+{% block title %} Category: {{category_posts.0.headline}} {% endblock %}
+
+{% block content%}
+    <div>
+        {% for post in category_posts.1 %}
+            <div>
+                <h1> {{ post.title }} </h1>
+                <p> created date: {{ post.created_date }} by {{ post.author }} </p>
+                <p>  {{ post.text }} </p>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}

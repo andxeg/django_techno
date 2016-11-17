@@ -7,7 +7,7 @@ class Category(models.Model):
     headline = models.CharField(db_index=True, max_length=200)
 
     def __str__(self):
-       return self.headline
+        return self.headline
 
     class Meta:
         ordering = ('headline',)

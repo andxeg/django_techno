@@ -11,8 +11,8 @@
         <div>
             {% for poll, choices in polls.items %}
                 <div>
-                    <p>published: {{ poll.pub_date }} by {{ poll.author }}</p>
                     <h1> {{ poll.question }} </h1>
+                    <p>published: {{ poll.pub_date }} by {{ poll.author }}</p>
                     <div>
                         {% for choice in choices %}
                             <ul>
@@ -22,7 +22,7 @@
                             </ul>
 
                         {% endfor %}
-                    </div>>
+                    </div>
                 </div>
             {% endfor %}
 
